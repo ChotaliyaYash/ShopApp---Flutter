@@ -1,45 +1,17 @@
 // ignore_for_file: prefer_final_fields
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shopapp/modules/http_exceptions.dart';
 import 'package:shopapp/modules/product.dart';
+import 'package:http/http.dart' as http;
+import 'package:shopapp/urls/url.dart';
 
 // ChnageNotifier is to use enable behind the seens context management
 class ProductsProvider with ChangeNotifier {
   // product list
-  List<Product> _productsItem = [
-    Product(
-      id: 'p1',
-      title: 'Red Shirt',
-      description: 'A red shirt - it is pretty red!',
-      price: 29.99,
-      imageUrl:
-          'https://cdn.pixabay.com/photo/2016/10/02/22/17/red-t-shirt-1710578_1280.jpg',
-    ),
-    Product(
-      id: 'p2',
-      title: 'Trousers',
-      description: 'A nice pair of trousers.',
-      price: 59.99,
-      imageUrl:
-          'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Trousers%2C_dress_%28AM_1960.022-8%29.jpg/512px-Trousers%2C_dress_%28AM_1960.022-8%29.jpg',
-    ),
-    Product(
-      id: 'p3',
-      title: 'Yellow Scarf',
-      description: 'Warm and cozy - exactly what you need for the winter.',
-      price: 19.99,
-      imageUrl:
-          'https://live.staticflickr.com/4043/4438260868_cc79b3369d_z.jpg',
-    ),
-    Product(
-      id: 'p4',
-      title: 'A Pan',
-      description: 'Prepare any meal you want.',
-      price: 49.99,
-      imageUrl:
-          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Cast-Iron-Pan.jpg/1024px-Cast-Iron-Pan.jpg',
-    ),
-  ];
+  List<Product> _productsItem = [];
 
 // products copy send to other
   List<Product> get items {
@@ -56,22 +28,88 @@ class ProductsProvider with ChangeNotifier {
     return _productsItem.firstWhere((product) => product.id == id);
   }
 
-  void addProduct(Product product) {
-    final newProduct = Product(
-      id: DateTime.now().toString(),
-      title: product.title,
-      description: product.description,
-      price: product.price,
-      imageUrl: product.imageUrl,
-    );
-    _productsItem.add(newProduct);
-    notifyListeners();
+  // fetch product
+  Future<void> fetchAndSetProducts() async {
+    // Http request
+    final url = Uri.parse("${URL.url}/products.json");
+    try {
+      final response = await http.get(url);
+      if (response.body == 'null') {
+        return;
+      }
+      final List<Product> loadedProduct = [];
+      final extractedData = json.decode(response.body) as Map<String, dynamic>;
+      extractedData.forEach((productId, productData) {
+        loadedProduct.add(
+          Product(
+            id: productId,
+            title: productData['title'],
+            description: productData['description'],
+            price: productData['price'],
+            imageUrl: productData['imageUrl'],
+            isFavorait: productData['isFavorait'],
+          ),
+        );
+      });
+      _productsItem = loadedProduct;
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  void updateProduct(String productId, Product product) {
+// add product
+  Future<void> addProduct(Product product) async {
+    // Http request
+    final url = Uri.parse("${URL.url}/products.json");
+    try {
+      final response = await http.post(
+        url,
+        body: json.encode(
+          {
+            "title": product.title,
+            "price": product.price,
+            "description": product.description,
+            "imageUrl": product.imageUrl,
+            "isFavorait": product.isFavorait
+          },
+        ),
+      );
+      // local storage
+      final newProduct = Product(
+        id: json.decode(response.body)["name"],
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        imageUrl: product.imageUrl,
+      );
+      _productsItem.add(newProduct);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // update Products
+  Future<void> updateProduct(String productId, Product product) async {
     final prodIndex =
         _productsItem.indexWhere((element) => element.id == productId);
     if (prodIndex >= 0) {
+      // Http request
+      final url = Uri.parse("${URL.url}/products/$productId.json");
+      try {
+        await http.patch(
+          url,
+          body: json.encode({
+            'title': product.title,
+            'description': product.description,
+            'price': product.price,
+            'imageUrl': product.imageUrl,
+          }),
+        );
+      } catch (e) {
+        rethrow;
+      }
       _productsItem[prodIndex] = product;
       notifyListeners();
     } else {
@@ -79,8 +117,20 @@ class ProductsProvider with ChangeNotifier {
     }
   }
 
-  void deleteProduct(String productId) {
-    _productsItem.removeWhere((element) => element.id == productId);
+  Future<void> deleteProduct(String productId) async {
+    // Http request
+    final url = Uri.parse("${URL.url}/products/$productId.json");
+    final existingProductIndex =
+        _productsItem.indexWhere((element) => element.id == productId);
+    Product? existingProduct = _productsItem[existingProductIndex];
+    _productsItem.removeAt(existingProductIndex);
     notifyListeners();
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      _productsItem.insert(existingProductIndex, existingProduct);
+      notifyListeners();
+      throw HTTPExceprion('Could not delete product');
+    }
+    existingProduct = null;
   }
 }

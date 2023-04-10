@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shopapp/providers/cart_provider.dart';
+import 'package:shopapp/providers/product_provider.dart';
 import 'package:shopapp/screens/cart_screen.dart';
 import 'package:shopapp/screens/product_overview_screen.dart';
 import 'package:shopapp/widgets/app_drawer.dart';
@@ -23,6 +24,41 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _showOnlyFavourites = false;
+
+  // isInit
+  bool isInit = true;
+  // loading
+  bool isLoading = false;
+
+  @override
+  void didChangeDependencies() {
+    if (isInit) {
+      fatchData();
+    }
+    isInit = false;
+    super.didChangeDependencies();
+  }
+
+  Future<void> fatchData() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await Provider.of<ProductsProvider>(context).fetchAndSetProducts();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unable to load data, please try again"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,7 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-      body: ProductOverviewScreen(showFavorites: _showOnlyFavourites),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : ProductOverviewScreen(showFavorites: _showOnlyFavourites),
       drawer: const AppDrawer(),
     );
   }

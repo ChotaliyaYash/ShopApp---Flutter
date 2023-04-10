@@ -8,31 +8,44 @@ class OrderScreen extends StatelessWidget {
   static String routeName = '/orders';
   const OrderScreen({super.key});
 
+  Future<void> _refreshProduct(BuildContext context) async {
+    Provider.of<OrderProvider>(context, listen: false).fatchAndSetOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final orderData = Provider.of<OrderProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your Orders"),
       ),
-      body: orderData.getOrder.isEmpty
-          ? const Center(
-              child: Text(
-                "You has not orderes anything yet!",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      body: FutureBuilder(
+          future: Provider.of<OrderProvider>(context, listen: false)
+              .fatchAndSetOrders(),
+          builder: (context, dataSnapshot) {
+            if (dataSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (dataSnapshot.error == null) {
+              return Consumer<OrderProvider>(
+                builder: (context, value, child) => RefreshIndicator(
+                  onRefresh: () => _refreshProduct(context),
+                  child: ListView.builder(
+                    itemCount: value.getOrder.length,
+                    itemBuilder: (context, index) {
+                      return OrderItems(
+                        orderItem: value.getOrder[index],
+                      );
+                    },
+                  ),
                 ),
-              ),
-            )
-          : ListView.builder(
-              itemCount: orderData.getOrder.length,
-              itemBuilder: (context, index) {
-                return OrderItems(
-                  orderItem: orderData.getOrder[index],
-                );
-              },
-            ),
+              );
+            } else {
+              return const Center(
+                child: Text("An error occurred!"),
+              );
+            }
+          }),
       drawer: const AppDrawer(),
     );
   }

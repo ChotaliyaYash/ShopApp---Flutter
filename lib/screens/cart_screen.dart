@@ -41,18 +41,8 @@ class CartScreen extends StatelessWidget {
                     ),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Provider.of<OrderProvider>(
-                        context,
-                        listen: false,
-                      ).addOrder(
-                        cartItems.totalCartAmount,
-                        cartItems.cartItem.values.toList(),
-                      );
-                      cartItems.clear();
-                    },
-                    child: const Text("ORDER NOW"),
+                  OrderNowButton(
+                    cartItems: cartItems,
                   )
                 ],
               ),
@@ -75,6 +65,70 @@ class CartScreen extends StatelessWidget {
           )
         ],
       ),
+    );
+  }
+}
+
+class OrderNowButton extends StatefulWidget {
+  const OrderNowButton({
+    super.key,
+    required this.cartItems,
+  });
+
+  final CartProvider cartItems;
+
+  @override
+  State<OrderNowButton> createState() => _OrderNowButtonState();
+}
+
+class _OrderNowButtonState extends State<OrderNowButton> {
+  //
+  bool isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaffoldmessenger = ScaffoldMessenger.of(context);
+
+    return TextButton(
+      onPressed: (widget.cartItems.totalCartAmount <= 0 || isLoading)
+          ? null
+          : () async {
+              try {
+                setState(() {
+                  isLoading = true;
+                });
+                await Provider.of<OrderProvider>(
+                  context,
+                  listen: false,
+                ).addOrder(
+                  widget.cartItems.totalCartAmount,
+                  widget.cartItems.cartItem.values.toList(),
+                );
+                scaffoldmessenger.hideCurrentSnackBar();
+                scaffoldmessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text("Order placed successfully"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                widget.cartItems.clear();
+              } catch (e) {
+                scaffoldmessenger.hideCurrentSnackBar();
+                scaffoldmessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text("Unable to place order, try again"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              } finally {
+                setState(() {
+                  isLoading = false;
+                });
+              }
+            },
+      child: isLoading
+          ? const CircularProgressIndicator()
+          : const Text("ORDER NOW"),
     );
   }
 }
