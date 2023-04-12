@@ -15,7 +15,7 @@ enum FilterOption {
 }
 
 class HomeScreen extends StatefulWidget {
-  static String routeName = '/';
+  static String routeName = '/homeScreen';
   const HomeScreen({super.key});
 
   @override

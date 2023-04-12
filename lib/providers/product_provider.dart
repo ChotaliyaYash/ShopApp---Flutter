@@ -10,6 +10,11 @@ import 'package:shopapp/urls/url.dart';
 
 // ChnageNotifier is to use enable behind the seens context management
 class ProductsProvider with ChangeNotifier {
+  //
+  final String? authToken;
+
+  ProductsProvider(this.authToken, this._productsItem);
+
   // product list
   List<Product> _productsItem = [];
 
@@ -31,7 +36,7 @@ class ProductsProvider with ChangeNotifier {
   // fetch product
   Future<void> fetchAndSetProducts() async {
     // Http request
-    final url = Uri.parse("${URL.url}/products.json");
+    final url = Uri.parse("${URL.url}/products.json?auth=$authToken");
     try {
       final response = await http.get(url);
       if (response.body == 'null') {
@@ -61,7 +66,7 @@ class ProductsProvider with ChangeNotifier {
 // add product
   Future<void> addProduct(Product product) async {
     // Http request
-    final url = Uri.parse("${URL.url}/products.json");
+    final url = Uri.parse("${URL.url}/products.json?auth=$authToken");
     try {
       final response = await http.post(
         url,
@@ -96,7 +101,8 @@ class ProductsProvider with ChangeNotifier {
         _productsItem.indexWhere((element) => element.id == productId);
     if (prodIndex >= 0) {
       // Http request
-      final url = Uri.parse("${URL.url}/products/$productId.json");
+      final url =
+          Uri.parse("${URL.url}/products/$productId.json?auth=$authToken");
       try {
         await http.patch(
           url,
@@ -119,7 +125,8 @@ class ProductsProvider with ChangeNotifier {
 
   Future<void> deleteProduct(String productId) async {
     // Http request
-    final url = Uri.parse("${URL.url}/products/$productId.json");
+    final url =
+        Uri.parse("${URL.url}/products/$productId.json?auth=$authToken");
     final existingProductIndex =
         _productsItem.indexWhere((element) => element.id == productId);
     Product? existingProduct = _productsItem[existingProductIndex];

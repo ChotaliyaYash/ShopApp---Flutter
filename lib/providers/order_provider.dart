@@ -23,6 +23,10 @@ class OrderItem {
 }
 
 class OrderProvider with ChangeNotifier {
+  final String authToken;
+
+  OrderProvider(this.authToken, this._orderItems);
+
   List<OrderItem> _orderItems = [];
 
   List<OrderItem> get getOrder {
@@ -31,7 +35,7 @@ class OrderProvider with ChangeNotifier {
 
 // fatch orders
   Future<void> fatchAndSetOrders() async {
-    final url = Uri.parse("${URL.url}/orders.json");
+    final url = Uri.parse("${URL.url}/orders.json?auth=$authToken");
     try {
       final response = await http.get(url);
       if (response.body == 'null') {
@@ -71,7 +75,7 @@ class OrderProvider with ChangeNotifier {
     double amount,
     List<CartItem> products,
   ) async {
-    final url = Uri.parse("${URL.url}/orders.json");
+    final url = Uri.parse("${URL.url}/orders.json?auth=$authToken");
     final timestamp = DateTime.now();
     try {
       final response = await http.post(

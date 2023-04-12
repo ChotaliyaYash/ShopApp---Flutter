@@ -25,10 +25,10 @@ class Product with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleFavorait() async {
+  Future<void> toggleFavorait(String authToken) async {
     final oldStatus = isFavorait;
     final url = Uri.parse(
-        "https://shopapp-flutter-85c8e-default-rtdb.firebaseio.com/products/$id.json");
+        "https://shopapp-flutter-85c8e-default-rtdb.firebaseio.com/products/$id.json?auth=$authToken");
     isFavorait = !isFavorait;
     notifyListeners();
     try {
